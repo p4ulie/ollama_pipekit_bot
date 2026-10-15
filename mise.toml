@@ -7,6 +7,10 @@ ollama = "latest"
 [env]
 # auto-creates and activates .venv whenever you're in this directory
 _.python.venv = { path = ".venv", create = true }
+# faster-whisper uses 4 CPU threads by default; 8 makes medium ~25% faster on an 8-core CPU.
+# Must be set before Python starts, so it lives here, not in .env.
+# ponytail: fixed at 8, set it to your physical core count
+OMP_NUM_THREADS = "8"
 
 [tasks.install]
 description = "Install Python deps, create .env, pull the Ollama model"
