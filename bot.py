@@ -7,7 +7,7 @@ Stack (no cloud APIs, no keys):
   -> back out via speakers. Silero VAD for turn-taking.
 
 Based on pipecat 1.12 examples (voice-piper.py, function-calling-ollama.py).
-Run:  mise run bot                          # interactive transport picker
+Run:  mise run bot -- --transport local      # mic + speakers directly
       mise run bot -- --transport webrtc     # browser client at http://localhost:7860
 """
 import os
@@ -35,7 +35,7 @@ from pipecat.workers.runner import WorkerRunner
 # pyaudio is only needed for the direct-mic transport; import lazily so the bot
 # module loads (and --transport webrtc works) on machines without PortAudio.
 try:
-    from pipecat.transports.local.audio import LocalAudioTransportParams
+    from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
     HAS_LOCAL_AUDIO = True
 except ImportError:
     HAS_LOCAL_AUDIO = False
@@ -105,11 +105,6 @@ transport_params = {
     ),
 }
 
-if HAS_LOCAL_AUDIO:
-    transport_params["local"] = lambda: LocalAudioTransportParams(
-        audio_in_enabled=True,
-        audio_out_enabled=True,
-    )
 
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
@@ -174,16 +169,22 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     runner = WorkerRunner(handle_sigint=runner_args.handle_sigint)
     await runner.add_workers(worker)
 
-    @transport.event_handler("on_client_connected")
-    async def on_client_connected(transport, client):
-        logger.info("Client connected")
+    async def greet():
         context.add_message({"role": "developer", "content": LANG["intro"]})
         await worker.queue_frames([LLMRunFrame()])
 
-    @transport.event_handler("on_client_disconnected")
-    async def on_client_disconnected(transport, client):
-        logger.info("Client disconnected")
-        await runner.cancel()
+    if HAS_LOCAL_AUDIO and isinstance(transport, LocalAudioTransport):
+        await greet()  # mic/speakers are always "connected"; no client events
+    else:
+        @transport.event_handler("on_client_connected")
+        async def on_client_connected(transport, client):
+            logger.info("Client connected")
+            await greet()
+
+        @transport.event_handler("on_client_disconnected")
+        async def on_client_disconnected(transport, client):
+            logger.info("Client disconnected")
+            await runner.cancel()
 
     await runner.run()
 
@@ -193,6 +194,22 @@ async def bot(runner_args: RunnerArguments):
     await run_bot(transport, runner_args)
 
 
+def run_local():
+    """Mic + speakers directly. Pipecat's runner has no 'local' transport, so bypass it."""
+    if not HAS_LOCAL_AUDIO:
+        raise SystemExit("pyaudio not available - use --transport webrtc")
+    import asyncio
+    args = RunnerArguments()
+    args.handle_sigint = True
+    args.pipeline_idle_timeout_secs = None  # nobody "leaves" a local session
+    transport = LocalAudioTransport(LocalAudioTransportParams(audio_in_enabled=True, audio_out_enabled=True))
+    asyncio.run(run_bot(transport, args))
+
+
 if __name__ == "__main__":
-    from pipecat.runner.run import main
-    main()
+    import sys
+    if sys.argv[1:] in (["--transport", "local"], ["-t", "local"]):
+        run_local()
+    else:
+        from pipecat.runner.run import main
+        main()

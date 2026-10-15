@@ -41,7 +41,7 @@ mise run bot -- --transport local
 # Browser client (prebuilt WebRTC UI at http://localhost:7860) — like your previous POC
 mise run bot -- --transport webrtc
 
-# Plain `mise run bot` shows an interactive transport picker.
+# Plain `mise run bot` serves all of Pipecat's transports at http://localhost:7860.
 ```
 
 First run downloads:
