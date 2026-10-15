@@ -46,7 +46,11 @@ mise run bot -- --transport webrtc
 
 First run downloads:
 - faster-whisper `small` model (~460 MB, cached in `~/.cache/huggingface`)
-- Piper voice `sk_SK-sklabca-medium` (~60 MB, cached in `~/.cache/pipecat/piper`)
+- Piper voice `sk_SK-lili-medium` (~60 MB, cached in `~/.cache/pipecat/piper`)
+
+Browser stuck on "Connecting…"? Privacy-minded Chromium browsers (Vivaldi, Brave) block
+direct WebRTC by default. In Vivaldi: Settings → Privacy → WebRTC IP Handling Policy →
+enable "Broadcast IP for Best WebRTC Performance".
 
 ## Configuration (env vars or .env)
 

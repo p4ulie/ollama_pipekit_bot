@@ -54,7 +54,7 @@ WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")  # tiny|base|small|medium|la
 # (voice ids: https://huggingface.co/rhasspy/piper-voices).
 LANGUAGES = {
     "sk": {
-        "voice": "sk_SK-sklabca-medium",  # also: sk_SK-bc1a-medium, sk_SK-lili-medium
+        "voice": "sk_SK-lili-medium",  # the only Slovak Piper voice
         "prompt": (
             "Si priateľský hlasový asistent. Odpovedaj stručne a priamo, "
             "maximálne 2–3 krátke vety. Tvoje odpovede sa čítajú nahlas — "
