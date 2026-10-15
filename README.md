@@ -22,6 +22,7 @@ Python port of the working browser-based proof of concept; built on Pipecat 1.12
 cd ollama_pipekit
 mise install          # python, uv, ollama
 mise run ollama       # in a second terminal, unless Ollama already runs as a service
+                      # or: mise run ollama-start (background; ollama-logs, ollama-stop)
 mise run install      # .venv + Python deps, creates .env, pulls OLLAMA_MODEL
 mise run configure    # optional: pick language, models, voice (rewrites .env)
 ```

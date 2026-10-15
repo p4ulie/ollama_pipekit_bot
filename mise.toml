@@ -56,6 +56,23 @@ fi
 description = "Run the Ollama server in the foreground"
 run = "ollama serve"
 
+[tasks.ollama-start]
+description = "Run the Ollama server in the background (until logout)"
+# full path: the systemd user manager doesn't have mise's PATH
+run = '''
+systemctl --user is-active -q ollama-serve && { echo "Already running"; exit 0; }
+systemctl --user reset-failed ollama-serve 2>/dev/null || true  # a crashed run blocks the unit name
+systemd-run --user --unit=ollama-serve "$(command -v ollama)" serve
+'''
+
+[tasks.ollama-stop]
+description = "Stop the background Ollama server"
+run = "systemctl --user stop ollama-serve"
+
+[tasks.ollama-logs]
+description = "Follow the background Ollama server's log"
+run = "journalctl --user -u ollama-serve -f"
+
 [tasks.bot]
 description = "Start the voice bot (extra args pass through, e.g. -- --transport local)"
 run = "python bot.py"
