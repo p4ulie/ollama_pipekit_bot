@@ -1,0 +1,61 @@
+[tools]
+claude = "latest"
+python = "3.12"
+uv = "latest"
+ollama = "latest"
+
+[env]
+# auto-creates and activates .venv whenever you're in this directory
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.install]
+description = "Install Python deps, create .env, pull the Ollama model"
+run = '''
+[ -f .env ] || { cp .env.example .env; echo "Created .env from .env.example"; }
+uv pip install -r requirements.txt
+set -a; . ./.env; set +a
+model="${OLLAMA_MODEL:-llama3.2}"
+ollama pull "$model" || echo "Ollama not reachable - start it ('mise run ollama'), then: ollama pull $model"
+'''
+
+[tasks.configure]
+description = "Interactively set language, models and voice in .env"
+raw = true  # needs the terminal for prompts
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+set -a; . ./.env 2>/dev/null || . ./.env.example; set +a
+ask() { local v; read -rp "$1 [$2]: " v; echo "${v:-$2}"; }
+
+# ponytail: language list mirrors LANGUAGES in bot.py; bot.py rejects unknown ones anyway
+old_lang="${BOT_LANGUAGE:-sk}"
+lang=$(ask "Language (sk, en)" "$old_lang")
+models=$(ollama list 2>/dev/null | awk 'NR>1{print $1}' | xargs) || models="(ollama not reachable)"
+echo "Pulled Ollama models: $models"
+model=$(ask "Ollama model" "${OLLAMA_MODEL:-llama3.2}")
+url=$(ask "Ollama URL" "${OLLAMA_URL:-http://localhost:11434/v1}")
+whisper=$(ask "Whisper model (tiny, base, small, medium, large-v3)" "${WHISPER_MODEL:-small}")
+[ "$lang" = "$old_lang" ] || PIPER_VOICE=""   # old voice override belongs to the old language
+voice=$(ask "Piper voice (empty = language default)" "${PIPER_VOICE:-}")
+
+cat > .env <<EOF
+OLLAMA_URL=$url
+OLLAMA_MODEL=$model
+BOT_LANGUAGE=$lang
+WHISPER_MODEL=$whisper
+${voice:+PIPER_VOICE=$voice}
+EOF
+echo "Wrote .env"
+
+if ! ollama list 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$model\(:latest\)\?"; then
+    ollama pull "$model" || echo "Pull failed - is Ollama running? ('mise run ollama')"
+fi
+'''
+
+[tasks.ollama]
+description = "Run the Ollama server in the foreground"
+run = "ollama serve"
+
+[tasks.bot]
+description = "Start the voice bot (extra args pass through, e.g. -- --transport local)"
+run = "python bot.py"

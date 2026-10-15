@@ -1,0 +1,2 @@
+pipecat-ai[whisper,piper,local,webrtc,runner]>=1.12,<1.13
+python-dotenv
